@@ -1,0 +1,25 @@
+#!/bin/bash
+
+JSON_FILE="data.json"
+
+# Check if the JSON file exists
+if [[ ! -f "$JSON_FILE" ]]; then
+    echo "Error: JSON file '$JSON_FILE' not found. Please ensure the file existsand rerun the script."
+     exit 1
+fi
+
+# Extract data using jq
+NAME=$(jq -r '.name' "$JSON_FILE")
+HEIGHT=$(jq -r '.height' "$JSON_FILE")
+WEIGHT=$(jq -r '.weight' "$JSON_FILE")
+TYPE=$(jq -r '.types[0].type.name' "$JSON_FILE")
+
+
+# Convert height to meters (API gives decimeters)
+HEIGHT_METERS=$(echo "$HEIGHT" | awk '{printf "%.1f", $1 / 10}')
+
+# Convert weight to kilograms (API gives hectograms)
+WEIGHT_KG=$(echo "$WEIGHT" | awk '{printf "%.1f", $1 / 10}')
+
+# Format and output the result
+echo "$NAME is of type $TYPE, weighs ${WEIGHT_KG}kg, and is ${HEIGHT_METERS}m tall."
