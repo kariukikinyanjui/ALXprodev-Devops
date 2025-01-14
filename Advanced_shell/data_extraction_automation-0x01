@@ -1,28 +1,28 @@
 #!/bin/bash
 
-JSON_FILE="data.json"
+INPUT_FILE="data.json"
 
-# Check if the JSON file exists
-if [[ ! -f "$JSON_FILE" ]]; then
-    echo "Error: JSON file '$JSON_FILE' not found. Please ensure the file existsand rerun the script."
-     exit 1
+
+# Check if the file exists and is not empty
+if [[ ! -s "$INPUT_FILE" ]]; then
+    echo "Error: $INPUT_FILE does not exist or is empty. Please run the previoustask to fetch the data."
+    exit 1
 fi
 
 # Extract data using jq
-RAW_OUTPUT=$(jq -r '{name: .name, height: .height, weight: .weight, type: .type[0].type.name} | @tsv' "$JSON_FILE")
+NAME=$(jq -r '.name' "$INPUT_FILE")
+HEIGHT=$(jq -r '.height' "$INPUT_FILE")
+WEIGHT=$(jq -r '.weight' "$INPUT_FILE")
+TYPE=$(jq -r '.types[0].type.name' "$INPUT_FILE")
 
+# Convert height and weight to human-readable format
+# Assume height is in decimeters (dm), so divide by 10 for meters
+# Assume weight is in hectograms (hg), so divide by 10 for kilograms
+HEIGHT_M=$(awk "BEGIN {printf \"%.1f\", $HEIGHT / 10}")
+WEIGHT_KG=$(awk "BEGIN {printf \"%.1f\", $WEIGHT / 10}")
 
-# Process data using awk
-FORMATTED_OUTPUT=$(echo "$RAW_DATA" | awk -F'\t' '
-{
-    name=$1
-    height=$2 / 10
-    weight=$3 / 10
-    type=$4
-    printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, type, weight, height}')
+# Format the output
+OUTPUT=$(echo "$NAME is of type $TYPE, weighs ${WEIGHT_KG}kg, and is ${HEIGHT_M}m tall." | sed 's/^./\U&/')
 
-# Refine the output using sed
-FINALOUTPUT=$(echo "$FORMATTED_OUTPUT" | sed 's/\.0kg/kg/; s/\.0m/m/')
-
-# Print the final output
-echo "$FINAL_OUTPUT
+# Print the result
+echo "$OUTPUT"
