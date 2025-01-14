@@ -9,17 +9,14 @@ if [[ ! -f "$JSON_FILE" ]]; then
 fi
 
 # Extract data using jq
-NAME=$(jq -r '.name' "$JSON_FILE")
-HEIGHT=$(jq -r '.height' "$JSON_FILE")
-WEIGHT=$(jq -r '.weight' "$JSON_FILE")
-TYPE=$(jq -r '.types[0].type.name' "$JSON_FILE")
+RAW_OUTPUT=$(jq -r '{name: .name, height: .height, weight: .weight, type: .type[0].type.name} | @tsv' "$JSON_FILE")
 
 
-# Convert height to meters (API gives decimeters)
-HEIGHT_METERS=$(echo "$HEIGHT" | awk '{printf "%.1f", $1 / 10}')
-
-# Convert weight to kilograms (API gives hectograms)
-WEIGHT_KG=$(echo "$WEIGHT" | awk '{printf "%.1f", $1 / 10}')
-
-# Format and output the result
-echo "$NAME is of type $TYPE, weighs ${WEIGHT_KG}kg, and is ${HEIGHT_METERS}m tall."
+# Parse the raw outpout using awk
+echo "$RAW_OUTPUT" | awk -F'\t' '
+{
+    name=$1
+    height=$2 / 10
+    weight=$3 / 10
+    type=$4
+    printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, type, weight, height}' | sed 's/\.0kg/kg/; s/\.0m/m/'
