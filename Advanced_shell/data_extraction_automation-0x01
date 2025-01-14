@@ -12,11 +12,17 @@ fi
 RAW_OUTPUT=$(jq -r '{name: .name, height: .height, weight: .weight, type: .type[0].type.name} | @tsv' "$JSON_FILE")
 
 
-# Parse the raw outpout using awk
-echo "$RAW_OUTPUT" | awk -F'\t' '
+# Process data using awk
+FORMATTED_OUTPUT=$(echo "$RAW_DATA" | awk -F'\t' '
 {
     name=$1
     height=$2 / 10
     weight=$3 / 10
     type=$4
-    printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, type, weight, height}' | sed 's/\.0kg/kg/; s/\.0m/m/'
+    printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, type, weight, height}')
+
+# Refine the output using sed
+FINALOUTPUT=$(echo "$FORMATTED_OUTPUT" | sed 's/\.0kg/kg/; s/\.0m/m/')
+
+# Print the final output
+echo "$FINAL_OUTPUT
