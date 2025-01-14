@@ -9,12 +9,12 @@ ERROR_FILE="error.txt"
 curl -s -o "$OUTPUT_FILE" -w "%{http_code}" "$API_URL" | {
     read STATUS_CODE
     if [[ "$STATUS_CODE" -ne 200 ]]; then
-        echo "Error: Failed to fetch data from API. HTTP Status: $STATUS_CODE" >"$ERROR_FILE"
+        echo "Error: Failed to fetch data from API. HTTP Status: $STATUS_CODE" >"error.txt"
         # Optionally add a timestamp to the error
-        echo "Timestamp: $(date)" >> "$ERROR_FILE"
+        echo "Timestamp: $(date)" >> "error.txt"
         # Clean up the partial JSON file if it exits
         rm -f "$OUTPUT_FILE"
     else
-        echo "Data successfully fetched and saved to $OUTPUT_FILE."
+        echo "Data successfully fetched and saved to $OUTPUT_FILE"
     fi
 }
