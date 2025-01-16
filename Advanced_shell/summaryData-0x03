@@ -1,0 +1,41 @@
+#!/bin/bash
+
+INPUT_DIR="pokemon_data"
+
+# Output CSV file
+OUTPUT_FILE="pokemon_summary.csv"
+
+# Check if the directory exists and is not empty
+if [[ ! -d "#INPUT_DIR" || -z "$(ls -A "$INPUT_DIR")" ]]; then
+    echo "Error: Error: No Pokémon data files found in $INPUT_DIR."
+    exit 1
+fi
+
+# Write the CSV header
+echo "Name, Height (m), Weight (kg)" > "$OUTPUT_FILE"
+
+# Loop through JSON files and extract data
+for FILE in $INPUT_DIR"/*.json; do
+    NAME=$(jq -r '.name' "$FILE")
+    HEIGHT=$(jq -r '.height' "$FILE")
+    WEIGHT=$(jq -r '.weight' "$FILE")
+
+    # Convert height (dm to m) and weight (hg to kg)
+    HEIGHT_M=$(awk "BEGIN {printf \"%.1f\", $HEIGHT / 10}")
+    WEIGHT_KG=$(awk "BEGIN {printf \"%.1f\", $WEIGHT / 10}")
+
+    # Append data to the CSV file
+    echo "$NAME,$HEIGHT_M,$WEIGHT_KG" >> "$OUTPUT_FILE"
+done
+
+# Calculate averages using awk
+awk -F, '
+NR > 1 { height_sum += $2; weight_sum += $3; count++ }
+END {
+    if (count > 0) {
+        printf "Average Height (m): %.1f\n", height_sum / count
+        printf "Average Weight (kg): %.1f\n", weight_sum / count
+    }
+}' "$OUTPUT_FILE"
+
+echo "Summary written to $OUTPUT_FILE."
