@@ -1,0 +1,31 @@
+#!/bin/bash
+
+POKEMON_LIST=('bulbasaur', 'ivysaur', 'venusaur', 'charmander', 'charmeleon')
+
+API_URL="https://pokeapi.co/api/v2/pokemon"
+
+# Delay in seconds to handle rate-limiting
+DELAY=2
+
+OUTPUT_DIR="pokemon_data"
+mkdir -p "OUTPUT_DIR"
+
+# Loop through the Pokemon list
+for POKEMON in "${POKEMON_LIST[@]}"; do
+    OUTPUT_FILE="$OUTPUT_DIR/$POKEMON.json"
+
+    # Make the API request
+    echo "Fetching data for $POKEMON..."
+    HTTP_STATUS=$(curl -s -o "$OUTPUT_FILE" -w "%{http_code}" "$API_URL/$POKEMON")
+
+    if [[ "$HTTP_STATUS" -eq 200 ]]; then
+	echo "Data for $POKEMON saved to $OUTPUT_FILE."
+    else
+	echo "Error: Failed to fetch data for $POKEMON. HTTP Status: $HTTP_STATUS"
+	rm -f "$OUTPUT_FILE" # Remove partial files if any
+    fi
+
+    # Wait for a delay to avoid rate-limiting
+    sleep "$DELAY"
+done
+
