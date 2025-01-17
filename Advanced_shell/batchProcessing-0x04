@@ -17,6 +17,9 @@ ERROR_LOG="errors.log"
 # Maximum number of parallel processes
 MAX_PARALLEL=3
 
+# Timeout for a process (in seconds)
+PROCESS_TIMEOUT=30
+
 # Function to fetch Pokémon data
 fetch_pokemon_data() {
     local pokemon="$1"
@@ -36,24 +39,33 @@ fetch_pokemon_data() {
 # Main script logic
 echo "Starting parallel Pokémon data retrieval..."
 
-# Initialize a counter for running processes
-running_processes=0
+# Function to handle timeout and termination of jobs
+terminate_jobs() {
+    echo "Terminating all running jobs..."
+    jobs -p | xargs kill 2>/dev/null
+}
+
+# Trap SIGINT and SIGTERM to clean up background jobs
+trap "terminate_jobs; exit" SIGINT SIGTERM
+
+# Track running jobs
+running_jobs=0
 
 for POKEMON in "${POKEMON_LIST[@]}"; do
-    # Start the data fetch in the background
-    fetch_pokemon_data "$POKEMON" &
+    # Start fetching data in the background
+    (timeout "$PROCESS_TIMEOUT" fetch_pokemon_data "$POKEMON") &
 
     # Increment the counter
-    ((running_processes++))
+    ((running_jobs++))
 
-    # Check if we need to wait for some processes to finish
-    if [[ "$running_processes" -ge "$MAX_PARALLEL" ]]; then
-        wait -n  # Wait for any background process to finish
-        ((running_processes--))
+    # If the limit is reached, wait for jobs to finish
+    if [[ "$running_jobs" -ge "$MAX_PARALLEL" ]]; then
+        wait -n  # Wait for any background job to finish
+        ((running_jobs--))
     fi
 done
 
-# Wait for all remaining background processes to finish
+# Wait for all remaining jobs to finish
 wait
 
 echo "Data retrieval complete. Errors, if any, are logged in $ERROR_LOG."
