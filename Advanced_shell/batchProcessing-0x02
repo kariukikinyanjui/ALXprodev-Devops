@@ -10,22 +10,43 @@ DELAY=2
 OUTPUT_DIR="pokemon_data"
 mkdir -p "OUTPUT_DIR"
 
+# Log file for errors
+ERROR_LOG="errors.log"
+> "$ERROR_LOG" # Clear the error log at the start
+
+# Maximum number of retry attempts
+MAX_RETRIES=3
+
+# Function to fetch Pokemon data with retry logic
+fetch_pokemon_data() {
+    local pokemon="$1"
+    local output_file="$OUTPUT_DIR/$pokemon.json"
+    local attempt=1
+
+    while [[ $attempt -le $MAX_RETRIES ]]; do
+	echo "Fetching data for $pokemon (Attempt $attempt)..."
+	HTTP_STATUS=$(curl -s -o "$output_file" -w "%{http_code}" "$API_URL/$pokemon")
+
+	if [[ "$HTTP_STATUS" -eq 200 ]]; then
+	    echo "Data for $pokemon saved to $output_file."
+	    return 0
+	else
+	    echo "Error: Failed to fetch data for $pokemon. HTTP Status: $HTTP_STATUS" >> "$ERROR_LOG"
+	    ((attempt++))
+	    sleep "$DELAY"
+	fi
+    done
+
+
+    # Log failure after maximum retries
+    echo "Error: Maximum retries reached for $pokemon. Skipping." >> "ERROR_LOG"
+    return 1
+}
+
 # Loop through the Pokemon list
-for POKEMON in "${POKEMON_LIST[@]}"; do
-    OUTPUT_FILE="$OUTPUT_DIR/$POKEMON.json"
-
-    # Make the API request
-    echo "Fetching data for $POKEMON..."
-    HTTP_STATUS=$(curl -s -o "$OUTPUT_FILE" -w "%{http_code}" "$API_URL/$POKEMON")
-
-    if [[ "$HTTP_STATUS" -eq 200 ]]; then
-	echo "Data for $POKEMON saved to $OUTPUT_FILE."
-    else
-	echo "Error: Failed to fetch data for $POKEMON. HTTP Status: $HTTP_STATUS"
-	rm -f "$OUTPUT_FILE" # Remove partial files if any
-    fi
-
-    # Wait for a delay to avoid rate-limiting
-    sleep "$DELAY"
+for POKEMON in "${POKEMON_LIST[!]}"; do
+    fetch_pokemon_data "$POKEMON"
+    sleep "$DELAY" # Delay between requests to avoid rate-limiting
 done
 
+echo "Data retrieval complete. Erros, if any, and are logged in $ERROR_LOG."
